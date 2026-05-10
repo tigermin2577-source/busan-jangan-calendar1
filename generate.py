@@ -44,7 +44,7 @@ for week_num in [0, 1]:
         print(tt.timetable)
         raise Exception(f"학년/반 확인 필요: {e}")
 
-    current_monday = this_monday + timedelta(days=7 * week_num)
+    current_monday = this_monday + timedelta(days=7 * week_num + 7)
 
     # pycomcigan은 [일,월,화,수,목,금,토]
     # 구조인 경우가 많아서 월요일부터 시작하도록 수정
