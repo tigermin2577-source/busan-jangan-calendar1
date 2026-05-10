@@ -31,13 +31,23 @@ calendar = Calendar()
 tt = TimeTable(SCHOOL_NAME)
 
 # 학년/반 체크
-if GRADE not in tt.timetable:
+grade_data = (
+    tt.timetable.get(GRADE)
+    or tt.timetable.get(str(GRADE))
+)
+
+if not grade_data:
+    print(tt.timetable)
     raise Exception("학년 없음")
 
-if CLASS not in tt.timetable[GRADE]:
-    raise Exception("반 없음")
+week_data = (
+    grade_data.get(CLASS)
+    or grade_data.get(str(CLASS))
+)
 
-week_data = tt.timetable[GRADE][CLASS]
+if not week_data:
+    print(grade_data)
+    raise Exception("반 없음")
 
 today = datetime.now()
 
