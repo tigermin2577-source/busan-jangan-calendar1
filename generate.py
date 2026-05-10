@@ -9,8 +9,8 @@ import pytz
 
 SCHOOL_NAME = "부산장안고등학교"
 
-GRADE = 2
-CLASS = 3
+GRADE = 1
+CLASS = 5
 
 # ==========================
 
