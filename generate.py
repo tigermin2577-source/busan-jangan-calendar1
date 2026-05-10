@@ -33,10 +33,10 @@ today = datetime.now()
 # 이번 주 월요일
 this_monday = today - timedelta(days=today.weekday())
 
-# 이번 주 + 다음 주 생성
-for week_num in [0, 1]:
+# 이번 주 + 다음 주
+for week_offset in [0, 1]:
 
-    tt = TimeTable(SCHOOL_NAME, week_num=week_num)
+    tt = TimeTable(SCHOOL_NAME, week_num=week_offset)
 
     try:
         week_data = tt.timetable[GRADE][CLASS]
@@ -44,15 +44,18 @@ for week_num in [0, 1]:
         print(tt.timetable)
         raise Exception(f"학년/반 확인 필요: {e}")
 
-    current_monday = this_monday + timedelta(days=7 * week_num)
+    # 실제 날짜 계산
+    base_day = this_monday + timedelta(days=7 * week_offset)
 
-    # pycomcigan은 [일,월,화,수,목,금,토]
-    # 구조인 경우가 많아서 월요일부터 시작하도록 수정
+    # 월~금
     for weekday in range(1, 6):
 
-        day = week_data[weekday]
+        try:
+            day = week_data[weekday]
+        except:
+            continue
 
-        current_day = current_monday + timedelta(days=weekday - 1)
+        current_day = base_day + timedelta(days=weekday - 1)
 
         for period, subject in enumerate(day, start=1):
 
@@ -95,7 +98,7 @@ for week_num in [0, 1]:
 
             event.description = f"{GRADE}학년 {CLASS}반"
 
-            # 중복 방지 UID
+            # Apple Calendar 중복 방지
             event.uid = (
                 f"{current_day.strftime('%Y%m%d')}"
                 f"-{period}-{GRADE}-{CLASS}"
@@ -103,7 +106,7 @@ for week_num in [0, 1]:
 
             calendar.events.add(event)
 
-# ICS 저장
+# 저장
 with open("timetable.ics", "w", encoding="utf-8") as f:
     f.writelines(calendar)
 
