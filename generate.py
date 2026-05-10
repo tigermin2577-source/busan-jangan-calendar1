@@ -30,67 +30,80 @@ calendar = Calendar()
 
 today = datetime.now()
 
-monday = today - timedelta(days=today.isoweekday() - 1)
+# 이번 주 월요일
+this_monday = today - timedelta(days=today.isoweekday() - 1)
 
-# ==========================
-# 시간표 가져오기
-# ==========================
+# 이번 주 + 다음 주 생성
+for week_num in [0, 1]:
 
-tt = TimeTable(SCHOOL_NAME)
-week_data = tt.timetable[GRADE][CLASS]
+    tt = TimeTable(SCHOOL_NAME, week_num=week_num)
 
-# ==========================
-# 날짜 생성 (핵심 안정 구조)
-# ==========================
+    try:
+        week_data = tt.timetable[GRADE][CLASS]
+    except Exception as e:
+        print(tt.timetable)
+        raise Exception(f"학년/반 확인 필요: {e}")
 
-for day_index in range(5):  # 월~금 고정
+    current_monday = this_monday + timedelta(days=7 * week_num)
 
-    current_day = monday + timedelta(days=day_index)
-    day = week_data[day_index]
+    # pycomcigan은 [일,월,화,수,목,금,토]
+    # 구조인 경우가 많아서 월요일부터 시작하도록 수정
+    for weekday in range(1, 6):
 
-    for period, subject in enumerate(day, start=1):
+        day = week_data[weekday]
 
-        if not subject:
-            continue
+        current_day = current_monday + timedelta(days=weekday - 1)
 
-        if period not in PERIOD_TIMES:
-            continue
+        for period, subject in enumerate(day, start=1):
 
-        start_str, end_str = PERIOD_TIMES[period]
-        sh, sm = map(int, start_str.split(":"))
-        eh, em = map(int, end_str.split(":"))
+            if not subject:
+                continue
 
-        start_dt = tz.localize(datetime(
-            current_day.year,
-            current_day.month,
-            current_day.day,
-            sh,
-            sm
-        ))
+            if period not in PERIOD_TIMES:
+                continue
 
-        end_dt = tz.localize(datetime(
-            current_day.year,
-            current_day.month,
-            current_day.day,
-            eh,
-            em
-        ))
+            start_str, end_str = PERIOD_TIMES[period]
 
-        event = Event()
-        event.name = str(subject)
-        event.begin = start_dt
-        event.end = end_dt
-        event.description = f"{GRADE}학년 {CLASS}반"
+            sh, sm = map(int, start_str.split(":"))
+            eh, em = map(int, end_str.split(":"))
 
-        # 🔥 중복 방지 (완전 안정)
-        event.uid = f"{current_day:%Y%m%d}-{period}-{GRADE}-{CLASS}"
+            start_dt = tz.localize(
+                datetime(
+                    current_day.year,
+                    current_day.month,
+                    current_day.day,
+                    sh,
+                    sm,
+                )
+            )
 
-        calendar.events.add(event)
+            end_dt = tz.localize(
+                datetime(
+                    current_day.year,
+                    current_day.month,
+                    current_day.day,
+                    eh,
+                    em,
+                )
+            )
 
-# ==========================
-# 저장
-# ==========================
+            event = Event()
 
+            event.name = str(subject)
+            event.begin = start_dt
+            event.end = end_dt
+
+            event.description = f"{GRADE}학년 {CLASS}반"
+
+            # 중복 방지 UID
+            event.uid = (
+                f"{current_day.strftime('%Y%m%d')}"
+                f"-{period}-{GRADE}-{CLASS}"
+            )
+
+            calendar.events.add(event)
+
+# ICS 저장
 with open("timetable.ics", "w", encoding="utf-8") as f:
     f.writelines(calendar)
 
