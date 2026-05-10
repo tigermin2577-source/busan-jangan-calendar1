@@ -28,29 +28,19 @@ tz = pytz.timezone("Asia/Seoul")
 
 calendar = Calendar()
 
+# 시간표 가져오기
 tt = TimeTable(SCHOOL_NAME)
 
-# 학년/반 체크
-grade_data = (
-    tt.timetable.get(GRADE)
-    or tt.timetable.get(str(GRADE))
-)
-
-if not grade_data:
+# 학년/반 접근
+try:
+    week_data = tt.timetable[GRADE][CLASS]
+except Exception as e:
     print(tt.timetable)
-    raise Exception("학년 없음")
-
-week_data = (
-    grade_data.get(CLASS)
-    or grade_data.get(str(CLASS))
-)
-
-if not week_data:
-    print(grade_data)
-    raise Exception("반 없음")
+    raise Exception(f"학년/반 확인 필요: {e}")
 
 today = datetime.now()
 
+# 이번 주 월요일 계산
 monday = today - timedelta(days=today.weekday())
 
 for weekday, day in enumerate(week_data):
@@ -92,17 +82,18 @@ for weekday, day in enumerate(week_data):
 
         event = Event()
 
-        event.name = subject
+        event.name = str(subject)
         event.begin = start_dt
         event.end = end_dt
 
         event.description = f"{GRADE}학년 {CLASS}반"
 
-        # Apple Calendar 중복 방지용
+        # 중복 방지용 UID
         event.uid = f"{current_day}-{period}-{GRADE}-{CLASS}"
 
         calendar.events.add(event)
 
+# ICS 저장
 with open("timetable.ics", "w", encoding="utf-8") as f:
     f.writelines(calendar)
 
