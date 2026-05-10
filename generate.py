@@ -24,42 +24,32 @@ PERIOD_TIMES = {
 }
 
 tz = pytz.timezone("Asia/Seoul")
-
 calendar = Calendar()
 
 today = datetime.now()
 
-# 👉 기준: "이번 주 월요일 00:00"
-this_monday = (today - timedelta(days=today.weekday())).replace(
-    hour=0, minute=0, second=0, microsecond=0
-)
-
-# ==========================
-# 핵심 수정 포인트
-# ==========================
-# pycomcigan week_num은 "주차 기준이 흔들림"
-# → 그래서 완전히 무시하고 "날짜로만 계산"
+# 👉 "오늘 기준 이번주 월요일"
+monday = today - timedelta(days=today.weekday())
 
 tt = TimeTable(SCHOOL_NAME)
 
-try:
-    week_data = tt.timetable[GRADE][CLASS]
-except Exception:
-    print(tt.timetable)
-    raise Exception("학년/반 확인 필요")
+week_data = tt.timetable[GRADE][CLASS]
 
 # ==========================
-# 시간표 생성 (이번주 + 다음주)
+# 핵심 해결 포인트
 # ==========================
-for week_offset in range(2):  # 0=이번주, 1=다음주
+# pycomcigan 구조:
+# 0=월, 1=화, 2=수, 3=목, 4=금
+
+for week_offset in range(2):  # 이번주 + 다음주
 
     for weekday_index, day in enumerate(week_data):
 
         if weekday_index >= 5:
             continue
 
-        # 🔥 핵심: 주 + 요일을 직접 합산
-        current_day = this_monday + timedelta(
+        # 🔥 핵심: 절대 기준 고정
+        current_day = monday + timedelta(
             days=weekday_index + (7 * week_offset)
         )
 
@@ -90,14 +80,10 @@ for week_offset in range(2):  # 0=이번주, 1=다음주
             event.end = end_dt
             event.description = f"{GRADE}학년 {CLASS}반"
 
-            # 중복 방지
             event.uid = f"{current_day:%Y%m%d}-{period}-{GRADE}-{CLASS}"
 
             calendar.events.add(event)
 
-# ==========================
-# 저장
-# ==========================
 with open("timetable.ics", "w", encoding="utf-8") as f:
     f.writelines(calendar)
 
