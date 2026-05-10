@@ -4,11 +4,10 @@ from datetime import datetime, timedelta
 import pytz
 
 # ==========================
-# 여기만 수정
+# 설정
 # ==========================
 
 SCHOOL_NAME = "부산장안고등학교"
-
 GRADE = 1
 CLASS = 2
 
@@ -30,32 +29,39 @@ calendar = Calendar()
 
 today = datetime.now()
 
-# 이번 주 월요일
-this_monday = today - timedelta(days=today.weekday())
+# 👉 기준: "이번 주 월요일 00:00"
+this_monday = (today - timedelta(days=today.weekday())).replace(
+    hour=0, minute=0, second=0, microsecond=0
+)
 
-# 이번 주 + 다음 주
-for week_offset in [0, 1]:
+# ==========================
+# 핵심 수정 포인트
+# ==========================
+# pycomcigan week_num은 "주차 기준이 흔들림"
+# → 그래서 완전히 무시하고 "날짜로만 계산"
 
-    tt = TimeTable(SCHOOL_NAME, week_num=week_offset)
+tt = TimeTable(SCHOOL_NAME)
 
-    try:
-        week_data = tt.timetable[GRADE][CLASS]
-    except Exception as e:
-        print(tt.timetable)
-        raise Exception(f"학년/반 확인 필요: {e}")
+try:
+    week_data = tt.timetable[GRADE][CLASS]
+except Exception:
+    print(tt.timetable)
+    raise Exception("학년/반 확인 필요")
 
-    # 실제 날짜 계산
-    base_day = this_monday + timedelta(days=7 * week_offset)
+# ==========================
+# 시간표 생성 (이번주 + 다음주)
+# ==========================
+for week_offset in range(2):  # 0=이번주, 1=다음주
 
-    # 월~금
-    for weekday in range(1, 6):
+    for weekday_index, day in enumerate(week_data):
 
-        try:
-            day = week_data[weekday]
-        except:
+        if weekday_index >= 5:
             continue
 
-        current_day = base_day + timedelta(days=weekday - 1)
+        # 🔥 핵심: 주 + 요일을 직접 합산
+        current_day = this_monday + timedelta(
+            days=weekday_index + (7 * week_offset)
+        )
 
         for period, subject in enumerate(day, start=1):
 
@@ -71,42 +77,27 @@ for week_offset in [0, 1]:
             eh, em = map(int, end_str.split(":"))
 
             start_dt = tz.localize(
-                datetime(
-                    current_day.year,
-                    current_day.month,
-                    current_day.day,
-                    sh,
-                    sm,
-                )
+                datetime(current_day.year, current_day.month, current_day.day, sh, sm)
             )
 
             end_dt = tz.localize(
-                datetime(
-                    current_day.year,
-                    current_day.month,
-                    current_day.day,
-                    eh,
-                    em,
-                )
+                datetime(current_day.year, current_day.month, current_day.day, eh, em)
             )
 
             event = Event()
-
             event.name = str(subject)
             event.begin = start_dt
             event.end = end_dt
-
             event.description = f"{GRADE}학년 {CLASS}반"
 
-            # Apple Calendar 중복 방지
-            event.uid = (
-                f"{current_day.strftime('%Y%m%d')}"
-                f"-{period}-{GRADE}-{CLASS}"
-            )
+            # 중복 방지
+            event.uid = f"{current_day:%Y%m%d}-{period}-{GRADE}-{CLASS}"
 
             calendar.events.add(event)
 
+# ==========================
 # 저장
+# ==========================
 with open("timetable.ics", "w", encoding="utf-8") as f:
     f.writelines(calendar)
 
